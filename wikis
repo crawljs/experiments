@@ -1,0 +1,35 @@
+#!/bin/bash
+# setup static wikipedia snapshots
+
+WWW_IPS="192.168.98.16 192.168.98.17"
+WIKIS=( "bs" "bn" )
+IDX=0
+MD=$1
+
+function setup () {
+  for ip in $WWW_IPS; do
+    dest=ubuntu@$ip
+    wiki=${WIKIS[IDX]} 
+
+    scp -r scripts/setup-wiki* $dest:
+    scp wiki-${wiki}.tgz $dest:
+    ssh $dest "echo ubuntu | sudo -S hostname wiki-$wiki"
+    ssh $dest "echo ubuntu | sudo -S ./setup-wiki.sh $wiki >> ./setup.log 2>&1 &"
+
+    (( IDX = IDX + 1 ))
+  done
+}
+
+usage () {
+  echo "$0 <setup>"
+}
+
+case $CMD in
+  'setup' )
+    setup
+    ;;
+  * )
+    usage 
+    exit 1
+    ;;
+esac

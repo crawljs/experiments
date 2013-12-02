@@ -1,0 +1,53 @@
+{
+  "group": "the group we are crawling for. defined by argv[1]",
+  "block": "the block we are crawling for. defined by argv[2]",
+  "mapper": {
+    "rules": [],
+    "groups": [
+      {"group": 0, "blocks": 4}
+    ]
+  },
+  "fetcher": {
+    "instances": 10,
+    "request": {
+        "jar": true,
+        "timeout": 30000,
+        "followRedirect": true,
+        "maxRedirects": 3,
+        "headers": {
+          "User-Agent": "crawl.js v0.0.1"
+        }
+    }
+  },
+  "extractor": "parser",
+  "queues": {
+    "local": {
+      "type": "memory",
+      "options": {
+        "limit": 10000
+      }
+    },
+    "remote": {
+      "type": "redis",
+      "options": {
+        "flushInterval": 10000,
+        "host": "redis0",
+        "port": "6379"
+      }
+    }
+  },
+  "seen": {
+    "host": "redis0",
+    "port": "6379"
+  },
+  "dispatcher": {
+    "acceptPattern": "http://(bs|bn).wikipedia.org/articles"
+  },
+  "store": {
+    "type": "dummy",
+    "options": {}
+  },
+  "robo": {
+    "limit": 100
+  }
+}
