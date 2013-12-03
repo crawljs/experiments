@@ -3,7 +3,7 @@
 set -e
 
 #make sure that the group configuration (number of groups & number of members (blocks) within the groups)
-#corresponds to `scripts/setup-workers/$CONFIG`
+#corresponds to `remote/setup-workers/$CONFIG`
 #each elem in the array is a group
 #WORKER_IPS=( "192.168.98.9 192.168.98.11" "192.168.98.12 192.168.98.13" )
 #CONFIG="config-exp3.json"
@@ -37,7 +37,7 @@ setup_group () {
   for ip in $ips; do
     dest=ubuntu@$ip
 
-    scp -r scripts/setup-worker* $dest: > /dev/null
+    scp -r remote/setup-worker* $dest: > /dev/null
     ssh $dest "echo ubuntu | sudo -S hostname worker$group-$block" > /dev/null 2>&1
     echo "setting up worker $ip"
     ssh $dest "echo ubuntu | sudo -S ./setup-worker.sh $group $block $CONFIG >> ./setup.log 2>&1 &" > /dev/null 2>&1

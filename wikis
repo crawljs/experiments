@@ -11,7 +11,7 @@ function setup () {
     dest=ubuntu@$ip
     wiki=${WIKIS[IDX]} 
 
-    scp -r scripts/setup-wiki* $dest:
+    scp -r remote/setup-wiki* $dest:
     scp wiki-${wiki}.tgz $dest:
     ssh $dest "echo ubuntu | sudo -S hostname wiki-$wiki"
     ssh $dest "echo ubuntu | sudo -S ./setup-wiki.sh $wiki >> ./setup.log 2>&1 &"
