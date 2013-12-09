@@ -1,0 +1,84 @@
+#!/bin/bash
+# add latency to 2 specific ip destinations
+# script structure: http://www.iplocation.net/tools/tc.bash.txt
+TC=/sbin/tc
+IF=eth0		    # Interface 
+RATE=100mbit
+LATENCY1=100ms # Latency towards `IP1`
+LATENCY2=200ms # Latency towards `IP2`
+IP1=192.168.98.16 
+IP2=192.168.98.17
+U32="$TC filter add dev $IF protocol ip parent 1:0 prio 1 u32"
+ 
+start() {
+
+    $TC qdisc add dev $IF root handle 1: htb default 30
+    $TC class add dev $IF parent 1: classid 1:1 htb rate $RATE
+    $TC qdisc add dev $IF parent 1:1 netem latency $LATENCY1
+    $TC class add dev $IF parent 1: classid 1:2 htb rate $RATE
+    $TC qdisc add dev $IF parent 1:2 netem latency $LATENCY2
+    $U32 match ip dst $IP1/32 flowid 1:1
+    $U32 match ip dst $IP2/32 flowid 1:2
+
+}
+
+stop() {
+
+    $TC qdisc del dev $IF root
+
+}
+
+restart() {
+
+    stop
+    sleep 1
+    start
+
+}
+
+show() {
+
+    $TC -s qdisc ls dev $IF
+
+}
+
+case "$1" in
+
+  start)
+
+    echo -n "Starting bandwidth shaping: "
+    start
+    echo "done"
+    ;;
+
+  stop)
+
+    echo -n "Stopping bandwidth shaping: "
+    stop
+    echo "done"
+    ;;
+
+  restart)
+
+    echo -n "Restarting bandwidth shaping: "
+    restart
+    echo "done"
+    ;;
+
+  show)
+    	    	    
+    echo "Bandwidth shaping status for $IF:\n"
+    show
+    echo ""
+    ;;
+
+  *)
+
+    pwd=$(pwd)
+    echo "Usage: $0 {start|stop|restart|show}"
+    ;;
+
+esac
+
+exit 0
+
