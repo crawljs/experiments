@@ -3,21 +3,47 @@
 set -e
 
 #make sure that the group configuration (number of groups & number of members (blocks) within the groups)
-#corresponds to `remote/setup-workers/$CONFIG`
+#corresponds to `scripts/setup-workers/$CONFIG`
 #each elem in the array is a group
-#WORKER_IPS=( "192.168.98.9 192.168.98.11" "192.168.98.12 192.168.98.13" )
-#CONFIG="config-exp3.json"
-WORKER_IPS=( "192.168.98.9 192.168.98.11 192.168.98.12 192.168.98.13" )
-CONFIG="config-exp2.json"
+WORKER_IPS=( "192.168.98.9 192.168.98.11" "192.168.98.12 192.168.98.13" )
+#WORKER_IPS=( "192.168.98.9 192.168.98.11 192.168.98.12 192.168.98.13" )
+#WORKER_IPS=( "192.168.98.9 192.168.98.11 192.168.98.12 192.168.98.13" )
+#WORKER_IPS=( "192.168.98.9 192.168.98.11 192.168.98.12 192.168.98.13 192.168.98.18 192.168.98.19 192.168.98.20 192.168.98.21" )
+#WORKER_IPS=( "192.168.98.9 192.168.98.11 192.168.98.12 192.168.98.13" )
+#WORKER_IPS=( "192.168.98.9" )
+#CONFIG="config-exp1.json"
+#CONFIG="config-exp2.json"
+CONFIG="config-exp3.json"
 CMD=$1
 
 SSH="ssh -q" #quiet
+
+usage () {
+  echo "$0 <setup|stop|start|restart|reboot>"
+}
+
+#helpers
 
 #flatten ips
 ips () {
   echo "${WORKER_IPS[@]}"
 }
+#send ssh cmd `$1` named `$2` to all workers in paralles
+send () {
+  local cmd=$1
+  local cmd_name=$2
+  local ips=$(ips)
+  for ip in $ips; do
+    (
+    echo "sending $cmd_name to $ip.."
+    $SSH ubuntu@$ip $cmd
+    echo "sending $cmd_name to $ip..done"
+    ) 2>/dev/null &
+  done
+  wait
+}
 
+#commands
 setup () {
   local group=0
   for group_ips in "${WORKER_IPS[@]}"; do
@@ -25,7 +51,7 @@ setup () {
     setup_group $group "$group_ips"
     (( group = group + 1 ))
   done
-
+  wait
   echo "done"
 }
 
@@ -36,36 +62,30 @@ setup_group () {
   local block=0
   for ip in $ips; do
     dest=ubuntu@$ip
-
-    scp -r remote/setup-worker* $dest: > /dev/null
+    (
+    scp -r scripts/setup-worker* $dest: > /dev/null
     ssh $dest "echo ubuntu | sudo -S hostname worker$group-$block" > /dev/null 2>&1
     echo "setting up worker $ip"
     ssh $dest "echo ubuntu | sudo -S ./setup-worker.sh $group $block $CONFIG >> ./setup.log 2>&1 &" > /dev/null 2>&1
+    ) & 2>/dev/null
 
     (( block = block + 1 ))
   done
 }
 
-usage () {
-  echo "$0 <setup|stop|start|restart>"
+reboot () {
+  local cmd="echo ubuntu | sudo -S reboot"
+  send "$cmd" "reboot"
 }
 
 stop () {
-  local ips=$(ips)
-  for ip in $ips; do
-    echo -n "stoping $ip.."
-    $SSH ubuntu@$ip ". ~/.nvm/nvm.sh && forever stopall;" 2>/dev/null
-    echo "done"
-  done
+  local cmd=". ~/.nvm/nvm.sh && forever stopall;"
+  send "$cmd" "stop"
 }
 
 start () {
-  local ips=$(ips)
-  for ip in $ips; do
-    echo -n "starting $ip.."
-    $SSH ubuntu@$ip "echo ubuntu | sudo -S service rc.local start" 2>/dev/null
-    echo "done"
-  done
+  local cmd="echo ubuntu | sudo -S service rc.local start"
+  send "$cmd" "start"
 }
 
 case $CMD in
@@ -82,9 +102,12 @@ case $CMD in
   'stop' )
     stop
     ;;
+  'reboot' )
+    reboot
+    ;;
   * )
     usage 
     exit 1
     ;;
 esac
-
+exit 0
