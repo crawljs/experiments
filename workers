@@ -37,7 +37,6 @@ send () {
     (
     echo "sending $cmd_name to $ip.."
     $SSH ubuntu@$ip $cmd
-    echo "sending $cmd_name to $ip..done"
     ) 2>/dev/null &
   done
   wait
@@ -88,6 +87,12 @@ start () {
   send "$cmd" "start"
 }
 
+#latency must be present and configured on workers
+latency () {
+  local cmd="echo ubuntu | sudo -S /home/ubuntu/latency start"
+  send "$cmd" "start"
+}
+
 case $CMD in
   'setup' )
     setup
@@ -104,6 +109,9 @@ case $CMD in
     ;;
   'reboot' )
     reboot
+    ;;
+  'latency' )
+    latency
     ;;
   * )
     usage 
